@@ -96,9 +96,24 @@ def detect_objects(model, roi, object_types, conf, imgsz, min_wh, overlap=100, i
             name = result.names[int(box.cls[0])]
             if name not in object_types:  # เอาเฉพาะชนิดที่เลือก
                 continue
-            bx1, by1, bx2, by2 = box.xyxy[0].tolist()
+        bx1, by1, bx2, by2 = box.xyxy[0].tolist()
+
+# จำกัดพิกัดให้อยู่ในขอบเขตของภาพย่อย
+        th, tw = tile.shape[:2]
+        bx1 = max(0, min(int(bx1), tw))
+        by1 = max(0, min(int(by1), th))
+        bx2 = max(0, min(int(bx2), tw))
+        by2 = max(0, min(int(by2), th))
+
+# กรองกรอบที่เล็กเกินไปหรือพิกัดผิดปกติ
+            if bx2 <= bx1 or by2 <= by1:
+                continue
             if (bx2 - bx1) < min_wh or (by2 - by1) < min_wh:
                 continue
+
+boxes.append([bx1 + off_x, by1 + off_y, bx2 + off_x, by2 + off_y])
+scores.append(float(box.conf[0]))
+labels.append(name)
             boxes.append([int(bx1 + off_x), int(by1 + off_y), int(bx2 + off_x), int(by2 + off_y)])
             scores.append(float(box.conf[0]))
             labels.append(name)
@@ -239,28 +254,15 @@ if use_tray and not tray_found:
 st.image(annotated, caption="ผลตรวจจับ (กรอบสี = วัตถุที่นับ, กรอบเขียว = พื้นที่ถาด)", use_container_width=True)
 
 # ---------------- สรุปผล ----------------
-adj = st.session_state["adj"]
-total = sum(counts.values()) + adj
+total = sum(counts.values())
 
 st.subheader("ผลการนับ")
 cols = st.columns(len(counts) + 1)
-for col, (name, c) in zip(cols, counts.items()):
-    col.metric(name, c)
-cols[-1].metric("รวมทั้งหมด", total, delta=f"{adj:+d}" if adj else None, delta_color="off")
 
-st.caption("ถ้าระบบนับพลาด กดปรับเพิ่ม/ลดจำนวนรวมได้")
-b1, b2, b3 = st.columns(3)
-if b1.button("➖ ลด 1", use_container_width=True):
-    st.session_state["adj"] -= 1
-    st.rerun()
-if b2.button("➕ เพิ่ม 1", use_container_width=True):
-    st.session_state["adj"] += 1
-    st.rerun()
-if b3.button("รีเซ็ต", use_container_width=True):
-    st.session_state["adj"] = 0
-    st.rerun()
+for col, (name, count) in zip(cols, counts.items()):
+    col.metric(name, count)
 
-# ---------------- บันทึกรูป (ไม่เก็บข้อมูลอย่างอื่น) ----------------
+cols[-1].metric("รวมทั้งหมด", total)
 buf = io.BytesIO()
 Image.fromarray(annotated).save(buf, format="PNG")
 st.download_button("💾 บันทึกรูปผลตรวจจับ", buf.getvalue(), file_name="result.png", mime="image/png")
