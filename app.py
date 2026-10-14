@@ -92,29 +92,30 @@ def detect_objects(model, roi, object_types, conf, imgsz, min_wh, overlap=100, i
         if tile.size == 0:
             continue
         result = model(tile, conf=conf, iou=iou, imgsz=imgsz, max_det=1000, verbose=False)[0]
+       
         for box in result.boxes:
             name = result.names[int(box.cls[0])]
-            if name not in object_types:  # เอาเฉพาะชนิดที่เลือก
+            if name not in object_types:
                 continue
-        bx1, by1, bx2, by2 = box.xyxy[0].tolist()
 
-# จำกัดพิกัดให้อยู่ในขอบเขตของภาพย่อย
-        th, tw = tile.shape[:2]
-        bx1 = max(0, min(int(bx1), tw))
-        by1 = max(0, min(int(by1), th))
-        bx2 = max(0, min(int(bx2), tw))
-        by2 = max(0, min(int(by2), th))
+            bx1, by1, bx2, by2 = box.xyxy[0].tolist()
 
-# กรองกรอบที่เล็กเกินไปหรือพิกัดผิดปกติ
-if bx2 <= bx1 or by2 <= by1:
-    continue
-if (bx2 - bx1) < min_wh or (by2 - by1) < min_wh:
-    continue
+            # จำกัดพิกัดให้อยู่ในภาพย่อย
+            th, tw = tile.shape[:2]
+            bx1 = max(0, min(int(bx1), tw))
+            by1 = max(0, min(int(by1), th))
+            bx2 = max(0, min(int(bx2), tw))
+            by2 = max(0, min(int(by2), th))
 
-boxes.append([bx1 + off_x, by1 + off_y, bx2 + off_x, by2 + off_y])
-scores.append(float(box.conf[0]))
-labels.append(name)
-            boxes.append([int(bx1 + off_x), int(by1 + off_y), int(bx2 + off_x), int(by2 + off_y)])
+            if bx2 <= bx1 or by2 <= by1:
+                continue
+            if (bx2 - bx1) < min_wh or (by2 - by1) < min_wh:
+                continue
+
+            boxes.append([
+                bx1 + off_x, by1 + off_y,
+                bx2 + off_x, by2 + off_y
+            ])
             scores.append(float(box.conf[0]))
             labels.append(name)
 
