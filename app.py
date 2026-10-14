@@ -106,10 +106,10 @@ def detect_objects(model, roi, object_types, conf, imgsz, min_wh, overlap=100, i
         by2 = max(0, min(int(by2), th))
 
 # กรองกรอบที่เล็กเกินไปหรือพิกัดผิดปกติ
-            if bx2 <= bx1 or by2 <= by1:
-                continue
-            if (bx2 - bx1) < min_wh or (by2 - by1) < min_wh:
-                continue
+if bx2 <= bx1 or by2 <= by1:
+    continue
+if (bx2 - bx1) < min_wh or (by2 - by1) < min_wh:
+    continue
 
 boxes.append([bx1 + off_x, by1 + off_y, bx2 + off_x, by2 + off_y])
 scores.append(float(box.conf[0]))
