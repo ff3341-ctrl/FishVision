@@ -9,7 +9,7 @@ from ultralytics import YOLO
 
 # ---------------- ตั้งค่า ----------------
 MODEL_PATH = "ffweights.pt"
-APP_NAME = "Counter"
+APP_NAME = "FishVision"
 
 # สีกรอบของแต่ละชนิด (BGR) ใช้วนไปตามลำดับ
 COLORS = [(255, 0, 0), (0, 160, 0), (0, 0, 255), (0, 200, 255), (255, 0, 255)]
@@ -221,11 +221,15 @@ with st.sidebar:
 st.title(f"🔬 {APP_NAME}")
 st.caption("นับวัตถุด้วย YOLO · ระบบอยู่ระหว่างพัฒนา อาจนับคลาดเคลื่อนเล็กน้อย โปรดตรวจทานก่อนใช้ผล")
 
-# ชนิดที่ให้เลือก = คลาสทั้งหมดที่โมเดลรู้จัก
+# นับเฉพาะปลา
 options = list(dict.fromkeys(model.names.values()))
-object_types = st.multiselect("เลือกสิ่งที่จะนับ", options, default=options)
-if not object_types:
-    st.info("เลือกอย่างน้อย 1 อย่างก่อน")
+
+if "fish" in options:
+    object_types = ["fish"]
+elif "Fish" in options:
+    object_types = ["Fish"]
+else:
+    st.error(f"ไม่พบคลาสปลาในโมเดล คลาสที่มี: {options}")
     st.stop()
 
 tab_cam, tab_up = st.tabs(["📷 ถ่ายด้วยกล้อง", "🖼️ อัปโหลดรูป"])
