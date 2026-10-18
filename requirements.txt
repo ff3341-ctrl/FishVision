@@ -7,4 +7,3 @@ pandas
 openpyxl
 streamlit-webrtc
 av
-python-3.11
