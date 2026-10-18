@@ -5,3 +5,5 @@ numpy
 Pillow
 pandas
 openpyxl
+streamlit-webrtc
+av
