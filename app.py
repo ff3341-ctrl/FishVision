@@ -220,13 +220,58 @@ with st.sidebar:
         del st.session_state["user"]
         st.rerun()
 
-    with st.expander("ตั้งค่าขั้นสูง"):
-        conf = st.slider("Confidence", 0.01, 0.90, 0.05, 0.01)
-        imgsz = st.select_slider("imgsz", options=[640, 1024, 1280], value=1024)
-        min_wh = st.number_input("ขนาดกรอบขั้นต่ำ (px)", min_value=0, value=10, step=1)
-        max_side = st.number_input("ย่อภาพด้านยาวสุดเหลือ (px, 0 = ไม่ย่อ)", min_value=0, value=1920, step=100)
-        use_tray = st.checkbox("ตัดเฉพาะถาดอัตโนมัติ", value=True)
-        show_conf = st.checkbox("แสดงค่าความมั่นใจบนกรอบ", value=False)
+   
+    with st.expander("⚙️ ตั้งค่าขั้นสูง", expanded=False):
+        conf = st.slider(
+            "ระดับความมั่นใจในการตรวจจับ",
+            min_value=0.01,
+            max_value=0.90,
+            value=0.05,
+            step=0.01,
+            format="%.2f",
+            help="กำหนดว่าระบบต้องมั่นใจแค่ไหนจึงจะนับปลา "
+                 "ค่ายิ่งสูงยิ่งคัดกรองเข้มงวด แต่อาจพลาดปลาบางตัว"
+        )
+
+        imgsz = st.select_slider(
+            "ความละเอียดในการตรวจจับ",
+            options=[640, 1024, 1280],
+            value=1024,
+            help="ค่าที่สูงขึ้นอาจช่วยตรวจจับปลาเล็กได้ดีขึ้น "
+                 "แต่ใช้เวลาประมวลผลมากขึ้น"
+        )
+
+        min_wh = st.number_input(
+            "ขนาดกรอบตรวจจับขั้นต่ำ (พิกเซล)",
+            min_value=0,
+            value=10,
+            step=1,
+            help="กรองกรอบที่มีความกว้างหรือความสูงต่ำกว่าค่านี้ "
+                 "หากตั้งเป็น 0 จะไม่กรองด้วยขนาดขั้นต่ำ"
+        )
+
+        max_side = st.number_input(
+            "ขนาดภาพสูงสุดก่อนประมวลผล (พิกเซล)",
+            min_value=0,
+            value=1920,
+            step=100,
+            help="ระบบจะย่อภาพให้ด้านที่ยาวที่สุดไม่เกินค่านี้ "
+                 "หากตั้งเป็น 0 จะไม่ย่อภาพ"
+        )
+
+        use_tray = st.checkbox(
+            "ตรวจจับเฉพาะบริเวณถาดอัตโนมัติ",
+            value=True,
+            help="เปิดเพื่อให้ระบบค้นหาขอบถาดและนับเฉพาะในบริเวณถาด "
+                 "หากหาถาดไม่พบ ระบบจะนับทั้งภาพแทน"
+        )
+
+        show_conf = st.checkbox(
+            "แสดงคะแนนความมั่นใจบนกรอบปลา",
+            value=False,
+            help="เปิดเพื่อแสดงคะแนนความมั่นใจของปลาแต่ละตัวบนภาพผลลัพธ์"
+        )
+
 
 st.title(f"🔬 {APP_NAME}")
 st.caption("นับวัตถุด้วย YOLO · ระบบอยู่ระหว่างพัฒนา อาจนับคลาดเคลื่อนเล็กน้อย โปรดตรวจทานก่อนใช้ผล")
