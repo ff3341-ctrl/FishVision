@@ -5,6 +5,17 @@ import numpy as np
 import streamlit as st
 from PIL import Image, ImageOps
 from ultralytics import YOLO
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
+import av
+
+
+class CameraProcessor(VideoProcessorBase):
+    def __init__(self):
+        self.frame = None
+
+    def recv(self, frame):
+        self.frame = frame.to_ndarray(format="bgr24")
+        return frame
 
 # ---------------- ตั้งค่า ----------------
 MODEL_PATH = "ffweights.pt"
@@ -232,17 +243,6 @@ else:
     st.stop()
 
 tab_cam, tab_up = st.tabs(["📷 ถ่ายด้วยกล้อง", "🖼️ อัปโหลดรูป"])
-with tab_cam:
-    shot = st.camera_input("ถ่ายภาพ (กดอนุญาตใช้กล้องในเบราว์เซอร์)")
-with tab_up:
-    uploaded = st.file_uploader("เลือกรูป", type=["jpg", "jpeg", "png"])
-
-source = shot or uploaded
-if source is None:
-    st.info("ถ่ายภาพหรืออัปโหลดรูปเพื่อเริ่มนับ")
-    st.stop()
-
-data = source.getvalue()
 img_id = hashlib.md5(data).hexdigest()
 if st.session_state.get("img_id") != img_id:  # รูปใหม่ = ล้างค่าปรับแก้
     st.session_state["img_id"] = img_id
