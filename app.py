@@ -1,6 +1,5 @@
 import hashlib
 import io
-
 import cv2
 import numpy as np
 import streamlit as st
@@ -194,13 +193,44 @@ with st.sidebar:
         del st.session_state["user"]
         st.rerun()
 
-    with st.expander("ตั้งค่าขั้นสูง"):
-        conf = st.slider("Confidence", 0.01, 0.90, 0.05, 0.01)
-        imgsz = st.select_slider("imgsz", options=[640, 1024, 1280], value=1024)
-        min_wh = st.number_input("ขนาดกรอบขั้นต่ำ (px)", min_value=0, value=10, step=1)
-        max_side = st.number_input("ย่อภาพด้านยาวสุดเหลือ (px, 0 = ไม่ย่อ)", min_value=0, value=1920, step=100)
-        use_tray = st.checkbox("ตัดเฉพาะถาดอัตโนมัติ", value=True)
-        show_conf = st.checkbox("แสดงค่าความมั่นใจบนกรอบ", value=False)
+   
+    with st.expander("⚙️ ตั้งค่าขั้นสูง"):
+        conf = st.slider(
+            "ระดับความมั่นใจในการตรวจจับ",
+            0.01, 0.90, 0.05, 0.01,
+            help="ค่ายิ่งสูง ระบบยิ่งคัดกรองเข้มงวด แต่อาจตรวจจับปลาบางตัวไม่พบ"
+        )
+
+        imgsz = st.select_slider(
+            "ความละเอียดในการตรวจจับ",
+            options=[640, 1024, 1280],
+            value=1024,
+            help="ค่าสูงช่วยให้เห็นรายละเอียดมากขึ้น แต่อาจใช้เวลานับนานขึ้น"
+        )
+
+        min_wh = st.number_input(
+            "ขนาดกรอบตรวจจับขั้นต่ำ (พิกเซล)",
+            min_value=0, value=10, step=1,
+            help="กรองกรอบที่เล็กกว่าค่าที่กำหนด ตั้งเป็น 0 เพื่อไม่กรองด้วยขนาด"
+        )
+
+        max_side = st.number_input(
+            "ขนาดภาพสูงสุดก่อนประมวลผล (พิกเซล)",
+            min_value=0, value=1920, step=100,
+            help="ระบบจะย่อภาพให้ด้านที่ยาวที่สุดไม่เกินค่านี้ ตั้งเป็น 0 เพื่อไม่ย่อภาพ"
+        )
+
+        use_tray = st.checkbox(
+            "ตรวจจับเฉพาะบริเวณถาดอัตโนมัติ",
+            value=True,
+            help="เปิดเพื่อให้ระบบค้นหาถาดและนับเฉพาะในบริเวณถาด หากหาไม่พบจะนับทั้งภาพ"
+        )
+
+        show_conf = st.checkbox(
+            "แสดงคะแนนความมั่นใจบนกรอบปลา",
+            value=False,
+            help="เปิดเพื่อแสดงคะแนนความมั่นใจของปลาแต่ละตัวบนภาพผลลัพธ์"
+        )
 
 st.title(f"🔬 {APP_NAME}")
 st.caption("นับวัตถุด้วย YOLO · ระบบอยู่ระหว่างพัฒนา อาจนับคลาดเคลื่อนเล็กน้อย โปรดตรวจทานก่อนใช้ผล")
