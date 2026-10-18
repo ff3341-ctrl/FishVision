@@ -7,7 +7,7 @@ from PIL import Image, ImageOps
 from ultralytics import YOLO
 
 # ---------------- ตั้งค่า ----------------
-MODEL_PATH = ("models/fhweights.pt/")
+MODEL_PATH = ("models/ffweights.pt/")
 APP_NAME = "Counter"
 
 # สีกรอบของแต่ละชนิด (BGR) ใช้วนไปตามลำดับ
