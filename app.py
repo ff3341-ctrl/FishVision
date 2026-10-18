@@ -1,25 +1,15 @@
 import hashlib
 import io
+
 import cv2
 import numpy as np
 import streamlit as st
 from PIL import Image, ImageOps
 from ultralytics import YOLO
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
-import av
-
-
-class CameraProcessor(VideoProcessorBase):
-    def __init__(self):
-        self.frame = None
-
-    def recv(self, frame):
-        self.frame = frame.to_ndarray(format="bgr24")
-        return frame
 
 # ---------------- ตั้งค่า ----------------
-MODEL_PATH = "ffweights.pt"
-APP_NAME = "FishVision"
+MODEL_PATH = ("models/fhweights.pt/")
+APP_NAME = "Counter"
 
 # สีกรอบของแต่ละชนิด (BGR) ใช้วนไปตามลำดับ
 COLORS = [(255, 0, 0), (0, 160, 0), (0, 0, 255), (0, 200, 255), (255, 0, 255)]
@@ -102,30 +92,14 @@ def detect_objects(model, roi, object_types, conf, imgsz, min_wh, overlap=100, i
         if tile.size == 0:
             continue
         result = model(tile, conf=conf, iou=iou, imgsz=imgsz, max_det=1000, verbose=False)[0]
-       
         for box in result.boxes:
             name = result.names[int(box.cls[0])]
-            if name not in object_types:
+            if name not in object_types:  # เอาเฉพาะชนิดที่เลือก
                 continue
-
             bx1, by1, bx2, by2 = box.xyxy[0].tolist()
-
-            # จำกัดพิกัดให้อยู่ในภาพย่อย
-            th, tw = tile.shape[:2]
-            bx1 = max(0, min(int(bx1), tw))
-            by1 = max(0, min(int(by1), th))
-            bx2 = max(0, min(int(bx2), tw))
-            by2 = max(0, min(int(by2), th))
-
-            if bx2 <= bx1 or by2 <= by1:
-                continue
             if (bx2 - bx1) < min_wh or (by2 - by1) < min_wh:
                 continue
-
-            boxes.append([
-                bx1 + off_x, by1 + off_y,
-                bx2 + off_x, by2 + off_y
-            ])
+            boxes.append([int(bx1 + off_x), int(by1 + off_y), int(bx2 + off_x), int(by2 + off_y)])
             scores.append(float(box.conf[0]))
             labels.append(name)
 
@@ -220,74 +194,36 @@ with st.sidebar:
         del st.session_state["user"]
         st.rerun()
 
-   
-    with st.expander("⚙️ ตั้งค่าขั้นสูง", expanded=False):
-        conf = st.slider(
-            "ระดับความมั่นใจในการตรวจจับ",
-            min_value=0.01,
-            max_value=0.90,
-            value=0.05,
-            step=0.01,
-            format="%.2f",
-            help="กำหนดว่าระบบต้องมั่นใจแค่ไหนจึงจะนับปลา "
-                 "ค่ายิ่งสูงยิ่งคัดกรองเข้มงวด แต่อาจพลาดปลาบางตัว"
-        )
-
-        imgsz = st.select_slider(
-            "ความละเอียดในการตรวจจับ",
-            options=[640, 1024, 1280],
-            value=1024,
-            help="ค่าที่สูงขึ้นอาจช่วยตรวจจับปลาเล็กได้ดีขึ้น "
-                 "แต่ใช้เวลาประมวลผลมากขึ้น"
-        )
-
-        min_wh = st.number_input(
-            "ขนาดกรอบตรวจจับขั้นต่ำ (พิกเซล)",
-            min_value=0,
-            value=10,
-            step=1,
-            help="กรองกรอบที่มีความกว้างหรือความสูงต่ำกว่าค่านี้ "
-                 "หากตั้งเป็น 0 จะไม่กรองด้วยขนาดขั้นต่ำ"
-        )
-
-        max_side = st.number_input(
-            "ขนาดภาพสูงสุดก่อนประมวลผล (พิกเซล)",
-            min_value=0,
-            value=1920,
-            step=100,
-            help="ระบบจะย่อภาพให้ด้านที่ยาวที่สุดไม่เกินค่านี้ "
-                 "หากตั้งเป็น 0 จะไม่ย่อภาพ"
-        )
-
-        use_tray = st.checkbox(
-            "ตรวจจับเฉพาะบริเวณถาดอัตโนมัติ",
-            value=True,
-            help="เปิดเพื่อให้ระบบค้นหาขอบถาดและนับเฉพาะในบริเวณถาด "
-                 "หากหาถาดไม่พบ ระบบจะนับทั้งภาพแทน"
-        )
-
-        show_conf = st.checkbox(
-            "แสดงคะแนนความมั่นใจบนกรอบปลา",
-            value=False,
-            help="เปิดเพื่อแสดงคะแนนความมั่นใจของปลาแต่ละตัวบนภาพผลลัพธ์"
-        )
-
+    with st.expander("ตั้งค่าขั้นสูง"):
+        conf = st.slider("Confidence", 0.01, 0.90, 0.05, 0.01)
+        imgsz = st.select_slider("imgsz", options=[640, 1024, 1280], value=1024)
+        min_wh = st.number_input("ขนาดกรอบขั้นต่ำ (px)", min_value=0, value=10, step=1)
+        max_side = st.number_input("ย่อภาพด้านยาวสุดเหลือ (px, 0 = ไม่ย่อ)", min_value=0, value=1920, step=100)
+        use_tray = st.checkbox("ตัดเฉพาะถาดอัตโนมัติ", value=True)
+        show_conf = st.checkbox("แสดงค่าความมั่นใจบนกรอบ", value=False)
 
 st.title(f"🔬 {APP_NAME}")
 st.caption("นับวัตถุด้วย YOLO · ระบบอยู่ระหว่างพัฒนา อาจนับคลาดเคลื่อนเล็กน้อย โปรดตรวจทานก่อนใช้ผล")
 
-# นับเฉพาะปลา
+# ชนิดที่ให้เลือก = คลาสทั้งหมดที่โมเดลรู้จัก
 options = list(dict.fromkeys(model.names.values()))
-
-if "fish" in options:
-    object_types = ["fish"]
-elif "Fish" in options:
-    object_types = ["Fish"]
-else:
-    st.error(f"ไม่พบคลาสปลาในโมเดล คลาสที่มี: {options}")
+object_types = st.multiselect("เลือกสิ่งที่จะนับ", options, default=options)
+if not object_types:
+    st.info("เลือกอย่างน้อย 1 อย่างก่อน")
     st.stop()
 
 tab_cam, tab_up = st.tabs(["📷 ถ่ายด้วยกล้อง", "🖼️ อัปโหลดรูป"])
+with tab_cam:
+    shot = st.camera_input("ถ่ายภาพ (กดอนุญาตใช้กล้องในเบราว์เซอร์)")
+with tab_up:
+    uploaded = st.file_uploader("เลือกรูป", type=["jpg", "jpeg", "png"])
+
+source = shot or uploaded
+if source is None:
+    st.info("ถ่ายภาพหรืออัปโหลดรูปเพื่อเริ่มนับ")
+    st.stop()
+
+data = source.getvalue()
 img_id = hashlib.md5(data).hexdigest()
 if st.session_state.get("img_id") != img_id:  # รูปใหม่ = ล้างค่าปรับแก้
     st.session_state["img_id"] = img_id
@@ -303,15 +239,28 @@ if use_tray and not tray_found:
 st.image(annotated, caption="ผลตรวจจับ (กรอบสี = วัตถุที่นับ, กรอบเขียว = พื้นที่ถาด)", use_container_width=True)
 
 # ---------------- สรุปผล ----------------
-total = sum(counts.values())
+adj = st.session_state["adj"]
+total = sum(counts.values()) + adj
 
 st.subheader("ผลการนับ")
 cols = st.columns(len(counts) + 1)
+for col, (name, c) in zip(cols, counts.items()):
+    col.metric(name, c)
+cols[-1].metric("รวมทั้งหมด", total, delta=f"{adj:+d}" if adj else None, delta_color="off")
 
-for col, (name, count) in zip(cols, counts.items()):
-    col.metric(name, count)
+st.caption("ถ้าระบบนับพลาด กดปรับเพิ่ม/ลดจำนวนรวมได้")
+b1, b2, b3 = st.columns(3)
+if b1.button("➖ ลด 1", use_container_width=True):
+    st.session_state["adj"] -= 1
+    st.rerun()
+if b2.button("➕ เพิ่ม 1", use_container_width=True):
+    st.session_state["adj"] += 1
+    st.rerun()
+if b3.button("รีเซ็ต", use_container_width=True):
+    st.session_state["adj"] = 0
+    st.rerun()
 
-cols[-1].metric("รวมทั้งหมด", total)
+# ---------------- บันทึกรูป (ไม่เก็บข้อมูลอย่างอื่น) ----------------
 buf = io.BytesIO()
 Image.fromarray(annotated).save(buf, format="PNG")
 st.download_button("💾 บันทึกรูปผลตรวจจับ", buf.getvalue(), file_name="result.png", mime="image/png")
